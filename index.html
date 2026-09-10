@@ -244,7 +244,13 @@
     cursor:pointer;font-family:'Inter',sans-serif;transition:filter .15s ease;
   }
   form button:hover{filter:brightness(1.08);}
+  form button:disabled{opacity:0.6;cursor:not-allowed;filter:none;}
   form p.note{margin-top:12px;color:var(--slate-soft);font-size:0.82rem;text-align:center;}
+  .form-status{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:0.88rem;text-align:center;font-weight:500;display:none;}
+  .form-status.is-visible{display:block;}
+  .form-status.success{background:rgba(47,155,255,0.1);color:var(--blue-deep);border:1px solid rgba(47,155,255,0.3);}
+  .form-status.error{background:rgba(197,48,48,0.08);color:#c53030;border:1px solid rgba(197,48,48,0.3);}
+  .hidden-field{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
 
   /* ---------- FOOTER ---------- */
   footer{background:var(--ink-soft);border-top:1px solid var(--ink-line);}
@@ -485,27 +491,31 @@
           </div>
         </div>
 
-        <form action="mailto:contact@ab-cleaning.fr" method="post" enctype="text/plain">
+        <form id="devis-form" name="demande-devis" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+          <input type="hidden" name="form-name" value="demande-devis">
+          <p class="hidden-field">
+            <label>Ne pas remplir : <input name="bot-field"></label>
+          </p>
           <div class="form-row">
             <div class="field">
               <label for="nom">Nom complet</label>
-              <input type="text" id="nom" name="Nom" placeholder="Votre nom" required>
+              <input type="text" id="nom" name="name" placeholder="Votre nom" required>
             </div>
             <div class="field">
               <label for="tel">Téléphone</label>
-              <input type="tel" id="tel" name="Téléphone" placeholder="06 12 34 56 78" required>
+              <input type="tel" id="tel" name="phone" placeholder="06 12 34 56 78" required>
             </div>
           </div>
           <div class="form-row">
             <div class="field full">
               <label for="email">Email</label>
-              <input type="email" id="email" name="Email" placeholder="vous@exemple.fr" required>
+              <input type="email" id="email" name="email" placeholder="vous@exemple.fr" required>
             </div>
           </div>
           <div class="form-row">
             <div class="field full">
               <label for="type">Type de prestation</label>
-              <select id="type" name="Prestation">
+              <select id="type" name="service">
                 <option>Nettoyage de bureaux / locaux professionnels</option>
                 <option>Nettoyage chez les particuliers</option>
                 <option>Nettoyage des vitres</option>
@@ -519,11 +529,12 @@
           <div class="form-row">
             <div class="field full">
               <label for="message">Votre demande</label>
-              <textarea id="message" name="Message" placeholder="Décrivez la surface, la fréquence souhaitée et votre commune..."></textarea>
+              <textarea id="message" name="message" placeholder="Décrivez la surface, la fréquence souhaitée et votre commune..."></textarea>
             </div>
           </div>
           <button type="submit">Envoyer la demande</button>
-          <p class="note">L'envoi ouvre votre messagerie habituelle, pré-remplie avec votre demande.</p>
+          <p class="note">Vos coordonnées sont transmises directement à AB Cleaning, en toute sécurité.</p>
+          <p class="form-status" id="devis-form-status" role="status" aria-live="polite"></p>
         </form>
       </div>
     </div>
@@ -563,5 +574,46 @@
   </div>
 </footer>
 
+  <script>
+    (function () {
+      var form = document.getElementById('devis-form');
+      if (!form) return;
+      var status = document.getElementById('devis-form-status');
+      var button = form.querySelector('button[type="submit"]');
+
+      function showStatus(kind, message) {
+        status.textContent = message;
+        status.className = 'form-status is-visible ' + kind;
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        button.disabled = true;
+        showStatus('', '');
+        status.className = 'form-status';
+
+        var data = new FormData(form);
+        fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(data).toString()
+        })
+          .then(function (response) {
+            if (response.ok) {
+              form.reset();
+              showStatus('success', 'Votre demande a bien été envoyée. Nous revenons vers vous rapidement.');
+            } else {
+              showStatus('error', "Une erreur est survenue lors de l'envoi. Merci de réessayer ou de nous appeler au 06 63 65 88 57.");
+            }
+          })
+          .catch(function () {
+            showStatus('error', "Une erreur est survenue lors de l'envoi. Merci de réessayer ou de nous appeler au 06 63 65 88 57.");
+          })
+          .finally(function () {
+            button.disabled = false;
+          });
+      });
+    })();
+  </script>
 </body>
 </html>
